@@ -822,7 +822,7 @@ export const AllTypesProps: Record<string, any> = {
     id: 'order_by',
     index: 'order_by',
     new_amount: 'order_by',
-    user_id: 'order_by',
+    profile_id: 'order_by',
   },
   claims_bool_exp: {
     _and: 'claims_bool_exp',
@@ -837,10 +837,10 @@ export const AllTypesProps: Record<string, any> = {
     id: 'bigint_comparison_exp',
     index: 'bigint_comparison_exp',
     new_amount: 'numeric_comparison_exp',
+    profile: 'profiles_bool_exp',
+    profile_id: 'bigint_comparison_exp',
     proof: 'String_comparison_exp',
     updated_at: 'timestamptz_comparison_exp',
-    user: 'users_bool_exp',
-    user_id: 'bigint_comparison_exp',
   },
   claims_constraint: true,
   claims_inc_input: {
@@ -849,7 +849,7 @@ export const AllTypesProps: Record<string, any> = {
     id: 'bigint',
     index: 'bigint',
     new_amount: 'numeric',
-    user_id: 'bigint',
+    profile_id: 'bigint',
   },
   claims_insert_input: {
     amount: 'numeric',
@@ -859,9 +859,9 @@ export const AllTypesProps: Record<string, any> = {
     id: 'bigint',
     index: 'bigint',
     new_amount: 'numeric',
+    profile: 'profiles_obj_rel_insert_input',
+    profile_id: 'bigint',
     updated_at: 'timestamptz',
-    user: 'users_obj_rel_insert_input',
-    user_id: 'bigint',
   },
   claims_max_order_by: {
     address: 'order_by',
@@ -871,9 +871,9 @@ export const AllTypesProps: Record<string, any> = {
     id: 'order_by',
     index: 'order_by',
     new_amount: 'order_by',
+    profile_id: 'order_by',
     proof: 'order_by',
     updated_at: 'order_by',
-    user_id: 'order_by',
   },
   claims_min_order_by: {
     address: 'order_by',
@@ -883,9 +883,9 @@ export const AllTypesProps: Record<string, any> = {
     id: 'order_by',
     index: 'order_by',
     new_amount: 'order_by',
+    profile_id: 'order_by',
     proof: 'order_by',
     updated_at: 'order_by',
-    user_id: 'order_by',
   },
   claims_on_conflict: {
     constraint: 'claims_constraint',
@@ -902,10 +902,10 @@ export const AllTypesProps: Record<string, any> = {
     id: 'order_by',
     index: 'order_by',
     new_amount: 'order_by',
+    profile: 'profiles_order_by',
+    profile_id: 'order_by',
     proof: 'order_by',
     updated_at: 'order_by',
-    user: 'users_order_by',
-    user_id: 'order_by',
   },
   claims_pk_columns_input: {
     id: 'bigint',
@@ -918,8 +918,8 @@ export const AllTypesProps: Record<string, any> = {
     id: 'bigint',
     index: 'bigint',
     new_amount: 'numeric',
+    profile_id: 'bigint',
     updated_at: 'timestamptz',
-    user_id: 'bigint',
   },
   claims_stddev_order_by: {
     amount: 'order_by',
@@ -927,7 +927,7 @@ export const AllTypesProps: Record<string, any> = {
     id: 'order_by',
     index: 'order_by',
     new_amount: 'order_by',
-    user_id: 'order_by',
+    profile_id: 'order_by',
   },
   claims_stddev_pop_order_by: {
     amount: 'order_by',
@@ -935,7 +935,7 @@ export const AllTypesProps: Record<string, any> = {
     id: 'order_by',
     index: 'order_by',
     new_amount: 'order_by',
-    user_id: 'order_by',
+    profile_id: 'order_by',
   },
   claims_stddev_samp_order_by: {
     amount: 'order_by',
@@ -943,7 +943,7 @@ export const AllTypesProps: Record<string, any> = {
     id: 'order_by',
     index: 'order_by',
     new_amount: 'order_by',
-    user_id: 'order_by',
+    profile_id: 'order_by',
   },
   claims_sum_order_by: {
     amount: 'order_by',
@@ -951,7 +951,7 @@ export const AllTypesProps: Record<string, any> = {
     id: 'order_by',
     index: 'order_by',
     new_amount: 'order_by',
-    user_id: 'order_by',
+    profile_id: 'order_by',
   },
   claims_update_column: true,
   claims_var_pop_order_by: {
@@ -960,7 +960,7 @@ export const AllTypesProps: Record<string, any> = {
     id: 'order_by',
     index: 'order_by',
     new_amount: 'order_by',
-    user_id: 'order_by',
+    profile_id: 'order_by',
   },
   claims_var_samp_order_by: {
     amount: 'order_by',
@@ -968,7 +968,7 @@ export const AllTypesProps: Record<string, any> = {
     id: 'order_by',
     index: 'order_by',
     new_amount: 'order_by',
-    user_id: 'order_by',
+    profile_id: 'order_by',
   },
   claims_variance_order_by: {
     amount: 'order_by',
@@ -976,7 +976,7 @@ export const AllTypesProps: Record<string, any> = {
     id: 'order_by',
     index: 'order_by',
     new_amount: 'order_by',
-    user_id: 'order_by',
+    profile_id: 'order_by',
   },
   date: 'String',
   date_comparison_exp: {
@@ -5023,10 +5023,10 @@ export const ReturnTypes: Record<string, any> = {
     id: 'bigint',
     index: 'bigint',
     new_amount: 'numeric',
+    profile: 'profiles',
+    profile_id: 'bigint',
     proof: 'String',
     updated_at: 'timestamptz',
-    user: 'users',
-    user_id: 'bigint',
   },
   claims_aggregate: {
     aggregate: 'claims_aggregate_fields',
@@ -5051,7 +5051,7 @@ export const ReturnTypes: Record<string, any> = {
     id: 'Float',
     index: 'Float',
     new_amount: 'Float',
-    user_id: 'Float',
+    profile_id: 'Float',
   },
   claims_max_fields: {
     address: 'String',
@@ -5061,9 +5061,9 @@ export const ReturnTypes: Record<string, any> = {
     id: 'bigint',
     index: 'bigint',
     new_amount: 'numeric',
+    profile_id: 'bigint',
     proof: 'String',
     updated_at: 'timestamptz',
-    user_id: 'bigint',
   },
   claims_min_fields: {
     address: 'String',
@@ -5073,9 +5073,9 @@ export const ReturnTypes: Record<string, any> = {
     id: 'bigint',
     index: 'bigint',
     new_amount: 'numeric',
+    profile_id: 'bigint',
     proof: 'String',
     updated_at: 'timestamptz',
-    user_id: 'bigint',
   },
   claims_mutation_response: {
     affected_rows: 'Int',
@@ -5087,7 +5087,7 @@ export const ReturnTypes: Record<string, any> = {
     id: 'Float',
     index: 'Float',
     new_amount: 'Float',
-    user_id: 'Float',
+    profile_id: 'Float',
   },
   claims_stddev_pop_fields: {
     amount: 'Float',
@@ -5095,7 +5095,7 @@ export const ReturnTypes: Record<string, any> = {
     id: 'Float',
     index: 'Float',
     new_amount: 'Float',
-    user_id: 'Float',
+    profile_id: 'Float',
   },
   claims_stddev_samp_fields: {
     amount: 'Float',
@@ -5103,7 +5103,7 @@ export const ReturnTypes: Record<string, any> = {
     id: 'Float',
     index: 'Float',
     new_amount: 'Float',
-    user_id: 'Float',
+    profile_id: 'Float',
   },
   claims_sum_fields: {
     amount: 'numeric',
@@ -5111,7 +5111,7 @@ export const ReturnTypes: Record<string, any> = {
     id: 'bigint',
     index: 'bigint',
     new_amount: 'numeric',
-    user_id: 'bigint',
+    profile_id: 'bigint',
   },
   claims_var_pop_fields: {
     amount: 'Float',
@@ -5119,7 +5119,7 @@ export const ReturnTypes: Record<string, any> = {
     id: 'Float',
     index: 'Float',
     new_amount: 'Float',
-    user_id: 'Float',
+    profile_id: 'Float',
   },
   claims_var_samp_fields: {
     amount: 'Float',
@@ -5127,7 +5127,7 @@ export const ReturnTypes: Record<string, any> = {
     id: 'Float',
     index: 'Float',
     new_amount: 'Float',
-    user_id: 'Float',
+    profile_id: 'Float',
   },
   claims_variance_fields: {
     amount: 'Float',
@@ -5135,7 +5135,7 @@ export const ReturnTypes: Record<string, any> = {
     id: 'Float',
     index: 'Float',
     new_amount: 'Float',
-    user_id: 'Float',
+    profile_id: 'Float',
   },
   distributions: {
     claims: 'claims',

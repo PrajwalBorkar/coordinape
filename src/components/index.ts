@@ -41,3 +41,4 @@ export * from './StaticTable/StaticTable';
 export * from './ThreeDotMenu/ThreeDotMenu';
 export * from './WalletAuthModal/WalletAuthModal';
 export * from './WalletController/WalletController';
+export * from './Table/Table';
