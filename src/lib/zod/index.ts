@@ -51,6 +51,12 @@ export const adminUpdateUserSchemaInput = z
     fixed_non_receiver: z.boolean().optional(),
     non_receiver: z.boolean().optional(),
     role: z.number().min(0).max(1).optional(),
+    fixed_payment_amount: z
+      .number()
+      .positive()
+      .min(1)
+      .max(100000000000)
+      .optional(),
   })
   .strict();
 
@@ -104,6 +110,12 @@ export const createUserSchemaInput = z
     fixed_non_receiver: z.boolean().optional(),
     non_receiver: z.boolean().optional(),
     role: z.number().min(0).max(1).optional(),
+    fixed_payment_amount: z
+      .number()
+      .positive()
+      .min(1)
+      .max(100000000000)
+      .optional(),
   })
   .strict();
 
