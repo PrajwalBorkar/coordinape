@@ -39,12 +39,5 @@ context('Coordinape', () => {
         cy.contains('Fixed Payment Token').parent().within(() => {
             cy.get('input').should('have.value', 'DAI')
         })
-        // Reset Setting
-        cy.contains('Settings').click();
-        cy.contains('Fixed Payment Token').parent().within(() => {
-            cy.get('input').clear().type('Disabled').blur();
-        })
-
-        cy.contains('Save').click();
     });
 });

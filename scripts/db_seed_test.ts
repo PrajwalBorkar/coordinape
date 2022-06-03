@@ -20,9 +20,10 @@ async function main() {
   await createEndedEpochWithGifts();
   await createCircleWithPendingGiftsEndingSoon();
   await createCircleWithGiftsNotYetEnded();
-
   const protocolId = await getProtocolIdForCircle(circleId);
   await createCircleInOrgButNoDevMember(protocolId!);
+  await createFreshOpenEpochDevAdminWithFixedPayment();
+
   // eslint-disable-next-line no-console
   CI ? console.log('Skipping Avatars') : await getAvatars();
 }
@@ -157,7 +158,6 @@ async function createCircleWithPendingGiftsEndingSoon() {
   await createGifts(result, epochId);
 }
 
-
 async function createCircleInOrgButNoDevMember(protocolId: number) {
   await adminClient.mutate({
     insert_circles: [
@@ -181,4 +181,24 @@ async function createCircleInOrgButNoDevMember(protocolId: number) {
       },
     ],
   });
+}
+
+async function createFreshOpenEpochDevAdminWithFixedPayment() {
+  const result = await insertMemberships(
+      getMembershipInput(
+          { protocolInput: { name: 'Fresh Open Epoch Admin' },
+            circlesInput: [{
+              name: getCircleName(),
+              fixed_payment_token_type: 'DAI'
+            }]},
+          {}
+      )
+  );
+  const circleId = result[0].circle_id;
+  await makeEpoch(
+      circleId,
+      DateTime.now().minus({ hours: 1 }),
+      DateTime.now().plus({ days: 6, hours: 23 }),
+      1
+  );
 }
