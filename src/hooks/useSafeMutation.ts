@@ -5,18 +5,13 @@ import { normalizeError, reportException } from 'utils/reporting';
 
 import { useApeSnackbar } from './useApeSnackbar';
 
+// useSafeMutation wraps a mutation call with global loading state and snackbar error/success handling
 export const useSafeMutation = <T>(
   fn: () => T,
   { hideLoading, success }: { hideLoading?: boolean; success?: string } = {}
 ): (() => Promise<T | undefined>) => {
-  const [globalLoading, setGlobalLoading] = useRecoilState(rGlobalLoading);
-
+  const [, setGlobalLoading] = useRecoilState(rGlobalLoading);
   const { apeError, apeInfo } = useApeSnackbar();
-
-  // FIXME: how do i just not fetch globalLoading here
-  if (globalLoading) {
-    // stuff
-  }
 
   return async (): Promise<T | undefined> => {
     try {
