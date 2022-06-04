@@ -2,12 +2,10 @@ import React, { useEffect, Suspense } from 'react';
 
 import * as Sentry from '@sentry/browser';
 
-import { useAllocation } from 'hooks';
 import {
   useWalletAuth,
   useMyProfile,
   useSelectedCircle,
-  useSelectedCircleId,
 } from 'recoilState/app';
 import { DOMAIN_IS_LOCALHOST } from 'utils/domain';
 
@@ -26,14 +24,7 @@ export const SentryScopeController = () => {
 };
 
 const AllocationScope = () => {
-  const circleId = useSelectedCircleId();
-  const { localGiftsChanged, tokenRemaining } = useAllocation(circleId);
-
   useEffect(() => {
-    Sentry.configureScope(scope => {
-      scope.setTag('local_gifts_changed', localGiftsChanged);
-      scope.setTag('tokens_remaining', tokenRemaining);
-    });
     return () => {
       Sentry.configureScope(scope => {
         scope.setTag('local_teammates_changed', null);

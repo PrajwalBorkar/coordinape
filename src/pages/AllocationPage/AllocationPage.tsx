@@ -1,6 +1,10 @@
+import assert from 'assert';
 import React, { useEffect, useState } from 'react';
 
+import isEqual from 'lodash/isEqual';
+import { useQuery, useQueryClient } from 'react-query';
 import { useLocation, matchPath, useNavigate } from 'react-router-dom';
+import { useRecoilValue } from 'recoil';
 
 import {
   makeStyles,
@@ -10,15 +14,20 @@ import {
   IconButton,
 } from '@material-ui/core';
 
+import useConnectedAddress from '../../hooks/useConnectedAddress';
+import { updateTeammates } from '../../lib/gql/mutations';
+import { useUserGifts } from '../../recoilState';
 import { Button } from '../../ui';
 import { ApeInfoTooltip } from 'components';
 import {
   useApiWithSelectedCircle,
   useAllocation,
+  useDeepChangeEffect,
+  pendingGiftsToSimpleGifts,
   // useAllocationController,
 } from 'hooks';
 import { BalanceIcon } from 'icons';
-import { useSelectedCircle } from 'recoilState/app';
+import { rUsersMap, useSelectedCircle } from 'recoilState/app';
 import {
   STEP_MY_EPOCH,
   STEP_MY_TEAM,
@@ -30,6 +39,7 @@ import {
 import AllocationEpoch from './AllocationEpoch';
 import AllocationGive from './AllocationGive';
 import AllocationTeam from './AllocationTeam';
+import { getTeammates } from './queries';
 
 import { IAllocationStep } from 'types';
 
@@ -126,13 +136,106 @@ export const AllocationPage = () => {
     completedSteps,
     rebalanceGifts,
     saveGifts,
+    updateLocalGifts,
+    givePerUser,
+    localGifts,
   } = useAllocation(circleId);
+
+  const address = useConnectedAddress();
 
   const { updateMyUser } = useApiWithSelectedCircle();
   const allSteps = !selectedCircle.team_selection ? NO_TEAM_STEPS : STEPS;
   const fixedNonReceiver = selectedMyUser.fixed_non_receiver;
   const [epochBio, setEpochBio] = useState('');
   const [nonReceiver, setNonReceiver] = useState(false);
+
+  const [teammatesChanged, setTeammatesChanged] = useState<boolean>(false);
+
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, isIdle, isStale } = useQuery(
+    ['teammates', selectedCircle.id],
+    () => getTeammates(selectedCircle.id, address as string),
+    {
+      enabled: !!(selectedCircle.id && address),
+      refetchOnReconnect: false,
+      refetchOnWindowFocus: false,
+      staleTime: Infinity,
+    }
+  );
+
+  useDeepChangeEffect(() => {
+    // not confident about this
+    const tm = startingTeammates ?? [];
+    setLocalTeammates(tm);
+    updateLocalGifts(tm);
+  }, [selectedMyUser.teammates]);
+
+  const { pendingGiftsFrom } = useUserGifts(selectedMyUser.id);
+  const usersMap = useRecoilValue(rUsersMap);
+
+  useDeepChangeEffect(() => {
+    const newGifts = pendingGiftsToSimpleGifts(pendingGiftsFrom, usersMap);
+    updateLocalGifts(localTeammates, newGifts);
+  }, [pendingGiftsFrom]);
+
+  const { allUsers, startingTeammates } = data || { allUsers: [] };
+
+  const [localTeammates, setLocalTeammates] = useState<
+    NonNullable<typeof startingTeammates>
+  >([]);
+
+  useEffect(() => {
+    if (!isLoading && !isIdle && !isStale && data?.startingTeammates) {
+      setLocalTeammates(data?.startingTeammates);
+    }
+  }, [data, isLoading, isIdle, isStale]);
+
+  const saveTeammates = async () => {
+    await updateTeammates(
+      selectedCircle.id,
+      localTeammates.map(u => u.id)
+    );
+    await handleTeammatesSaved();
+    queryClient.invalidateQueries('teammates');
+  };
+
+  useEffect(() => {
+    if (isLoading || isIdle) return;
+    setTeammatesChanged(
+      !isEqual(
+        localTeammates.map(u => u.id),
+        startingTeammates?.map(u => u.id)
+      )
+    );
+  }, [startingTeammates, localTeammates, isLoading, isIdle]);
+
+  const toggleLocalTeammate = (userId: number) => {
+    const addedUser = allUsers?.find(u => u.id === userId);
+    assert(addedUser);
+    const newTeammates = localTeammates.find(u => u.id === userId)
+      ? localTeammates.filter(u => u.id !== userId)
+      : [...localTeammates, addedUser];
+    setLocalTeammates(newTeammates);
+    updateLocalGifts(newTeammates);
+  };
+
+  const setAllLocalTeammates = () => {
+    assert(allUsers);
+    setLocalTeammates(allUsers);
+    updateLocalGifts(allUsers);
+  };
+
+  const clearLocalTeammates = () => {
+    if (!selectedCircle.team_selection) {
+      console.error('clearLocalTeammates with circle without team selection');
+      return;
+    }
+    setLocalTeammates([]);
+    updateLocalGifts([]);
+  };
+
+  // const setLocalGifts = useSetRecoilState(rLocalGifts(circleId));
 
   useEffect(() => {
     if (selectedMyUser) {
@@ -141,6 +244,7 @@ export const AllocationPage = () => {
     }
   }, [selectedMyUser]);
 
+  // TODO: does this work? no useEffect
   const epochDirty =
     selectedMyUser?.bio !== epochBio ||
     selectedMyUser.non_receiver !== nonReceiver;
@@ -276,14 +380,21 @@ export const AllocationPage = () => {
 
         {selectedMyUser && activeStep === 1 && (
           <AllocationTeam
-            onSave={handleTeammatesSaved}
+            onSave={saveTeammates}
+            allUsers={allUsers}
             onContinue={getHandleStep(STEP_ALLOCATION)}
+            changed={teammatesChanged}
+            toggleLocalTeammate={toggleLocalTeammate}
+            clearLocalTeammates={clearLocalTeammates}
+            localTeammates={localTeammates}
+            setAllLocalTeammates={setAllLocalTeammates}
+            givePerUser={givePerUser}
           />
         )}
 
         {epochIsActive && activeStep === 2 && (
           <>
-            <AllocationGive />
+            <AllocationGive localGifts={localGifts} givePerUser={givePerUser} />
             <div className={classes.balanceContainer}>
               <p className={classes.balanceDescription}>
                 {tokenRemaining} {selectedCircle.tokenName}

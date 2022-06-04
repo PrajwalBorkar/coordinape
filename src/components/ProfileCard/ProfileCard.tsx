@@ -24,7 +24,7 @@ import { CardInfoText } from './CardInfoText';
 import { ContributionSummary } from './ContributionSummary';
 import { GiftInput } from './GiftInput';
 
-import { IUser } from 'types';
+import { ISimpleGiftUser } from 'types';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -125,7 +125,7 @@ const ProfileCardInner = ({
   isMe,
   tokenName = 'GIVE',
 }: {
-  user: IUser;
+  user: ISimpleGiftUser;
   tokens: number;
   note: string;
   disabled?: boolean;

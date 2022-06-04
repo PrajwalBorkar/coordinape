@@ -1,13 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-console */
 
 import iti from 'itiriri';
 import * as mutations from 'lib/gql/mutations';
 import isEqual from 'lodash/isEqual';
-import { useQuery } from 'react-query';
 import { useRecoilValue, useRecoilState, useSetRecoilState } from 'recoil';
 
 import { useApiBase } from 'hooks';
-import { getCurrentTeammates } from 'pages/AllocationPage/queries';
 import {
   rLocalGifts,
   useUserGifts,
@@ -19,41 +18,13 @@ import { rUsersMap, useCircle } from 'recoilState/app';
 import { useDeepChangeEffect } from './useDeepChangeEffect';
 import { useRecoilLoadCatch } from './useRecoilLoadCatch';
 
-import { ISimpleGift, IUser, ITokenGift, PostTokenGiftsParam } from 'types';
-
-/**
- * Controller: triggers updates if the underlying data from the api changes.
- */
-export const useAllocationController = (circleId: number) => {
-  const { myUser, circle } = useCircle(circleId);
-  const { pendingGiftsFrom } = useUserGifts(myUser.id);
-  const usersMap = useRecoilValue(rUsersMap);
-
-  const baseTeammates = useRecoilValue(rBaseTeammates(circleId));
-
-  const { data: localTeammates } = useQuery(
-    ['getCurrentTeammates', circle.id],
-    () => {
-      return getCurrentTeammates(
-        circle.id,
-        myUser.address,
-        circle.team_selection
-      );
-    }
-  );
-
-  const setLocalGifts = useSetRecoilState(rLocalGifts(circleId));
-
-  useDeepChangeEffect(() => {
-    // setLocalTeammates(baseTeammates);
-    setLocalGifts(getLocalGiftUpdater(myUser.teammates));
-  }, [myUser.teammates]);
-
-  useDeepChangeEffect(() => {
-    // const newGifts = pendingGiftsToSimpleGifts(pendingGiftsFrom, usersMap);
-    // setLocalGifts(getLocalGiftUpdater(localTeammates, newGifts));
-  }, [pendingGiftsFrom]);
-};
+import {
+  ISimpleGift,
+  IUser,
+  ITokenGift,
+  PostTokenGiftsParam,
+  ISimpleGiftUser,
+} from 'types';
 
 /**
  * Methods and state for an allocation.
@@ -61,7 +32,6 @@ export const useAllocationController = (circleId: number) => {
 export const useAllocation = (circleId: number) => {
   const { fetchCircle } = useApiBase();
   const { myUser } = useCircle(circleId);
-  const { pendingGiftsFrom: pendingGifts } = useUserGifts(myUser.id);
 
   const [completedSteps] = useRecoilValue(rAllocationStepStatus(circleId));
   const [localGifts, setLocalGifts] = useRecoilState(rLocalGifts(circleId));
@@ -75,17 +45,24 @@ export const useAllocation = (circleId: number) => {
   const teammateReceiverCount = localGifts
     .map(g => (g.user.non_receiver ? 0 : 1))
     .reduce((a: number, b: number) => a + b, 0);
-  const givePerUser = new Map(localGifts.map(g => [g.user.id, g]));
+  const givePerUser = new Map<number, ISimpleGift>(
+    localGifts.map(g => [g.user.id, g])
+  );
+
+  const { pendingGiftsFrom } = useUserGifts(myUser.id);
 
   const localGiftsChanged =
-    buildDiffMap(pendingGiftMap(pendingGifts), simpleGiftsToMap(localGifts))
+    buildDiffMap(pendingGiftMap(pendingGiftsFrom), simpleGiftsToMap(localGifts))
       .size > 0;
+
+  const usersMap = useRecoilValue(rUsersMap);
 
   const rebalanceGifts = () => {
     if (teammateReceiverCount === 0) {
       return;
     }
     if (tokenAllocated === 0) {
+      console.log('X.REBALANCETOKEN0');
       setLocalGifts(
         localGifts.slice().map(g => {
           if (!g.user.non_receiver) {
@@ -99,6 +76,7 @@ export const useAllocation = (circleId: number) => {
       );
     } else {
       const rebalance = tokenStarting / tokenAllocated;
+      console.log('X.REBALANCETOKEN!=0');
       setLocalGifts(
         localGifts
           .slice()
@@ -110,7 +88,7 @@ export const useAllocation = (circleId: number) => {
   const saveGifts = useRecoilLoadCatch(
     () => async () => {
       const diff = buildDiffMap(
-        pendingGiftMap(pendingGifts),
+        pendingGiftMap(pendingGiftsFrom),
         simpleGiftsToMap(localGifts)
       );
 
@@ -127,12 +105,17 @@ export const useAllocation = (circleId: number) => {
       // FIXME calling fetchCircle here is wasteful
       await fetchCircle({ circleId: myUser.circle_id });
     },
-    [myUser, pendingGifts, localGifts],
+    [myUser, pendingGiftsFrom, localGifts],
     { success: 'Saved Gifts' }
   );
 
-  const updateLocalGifts = (teammates: any[]) => {
-    setLocalGifts(getLocalGiftUpdater(teammates));
+  const updateLocalGifts = (
+    newTeammates: ISimpleGiftUser[],
+    newGifts?: ISimpleGift[]
+  ) => {
+    console.error('X.UPDATELOCALGIFTS');
+    console.log(newTeammates);
+    setLocalGifts(getLocalGiftUpdater(newTeammates, newGifts));
   };
 
   return {
@@ -154,26 +137,38 @@ export const useAllocation = (circleId: number) => {
  * @param newGifts - Overwrite the existing gifts.
  */
 const getLocalGiftUpdater =
-  (newTeammates: IUser[], newGifts?: ISimpleGift[]) =>
+  (newTeammates: ISimpleGiftUser[], newGifts?: ISimpleGift[]) =>
   (baseGifts: ISimpleGift[]) => {
     const startingGifts = newGifts ?? baseGifts;
+    console.log('startingGifts');
+    console.log(startingGifts);
+    console.log('newTeammates');
+    console.log(newTeammates);
     const startingSet = new Set(startingGifts.map(g => g.user.id));
     const newSet = new Set(newTeammates.map(u => u.id));
     const keepers = [] as ISimpleGift[];
     startingGifts.forEach(g => {
       if (newSet.has(g.user.id) || g.note !== '' || g.tokens > 0) {
+        console.log('keepahPush1');
+        console.log(g);
         keepers.push(g);
       }
     });
     newTeammates.forEach(u => {
       if (!startingSet.has(u.id)) {
+        console.log('keepahPush2');
+        console.log(u);
         keepers.push({ user: u, tokens: 0, note: '' } as ISimpleGift);
       }
     });
+    // eslint-disable-next-line no-console
+    console.log('KEEPAHS');
+    // eslint-disable-next-line no-console
+    console.log(keepers);
     return keepers;
   };
 
-const pendingGiftsToSimpleGifts = (
+export const pendingGiftsToSimpleGifts = (
   pending: ITokenGift[],
   usersMap: Map<number, IUser>
 ) =>

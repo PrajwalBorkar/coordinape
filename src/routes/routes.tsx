@@ -47,6 +47,8 @@ export const AppRoutes = () => {
 };
 
 const LoggedInRoutes = () => {
+  // Doing this to create a singleton for the shared state across the various allocation pages
+  const allocationPage = <AllocationPage />;
   return (
     <Routes>
       <Route path={paths.home} element={<DefaultPage />} />
@@ -58,10 +60,10 @@ const LoggedInRoutes = () => {
       <Route path={paths.map()} element={<LazyAssetMapPage />} />
       <Route path={paths.vouching} element={<VouchingPage />} />
       <Route path={paths.history} element={<HistoryPage />} />
-      <Route path={paths.allocation} element={<AllocationPage />} />
-      <Route path={paths.team} element={<AllocationPage />} />
-      <Route path={paths.epoch} element={<AllocationPage />} />
-      <Route path={paths.give} element={<AllocationPage />} />
+      <Route path={paths.allocation} element={allocationPage} />
+      <Route path={paths.team} element={allocationPage} />
+      <Route path={paths.epoch} element={allocationPage} />
+      <Route path={paths.give} element={allocationPage} />
       <Route path={paths.circles} element={<CirclesPage />} />
       <Route path={paths.vaults} element={<VaultsPage />} />
       <Route path={paths.vaultTxs(':id')} element={<VaultTransactions />} />

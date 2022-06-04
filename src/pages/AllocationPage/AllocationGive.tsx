@@ -4,8 +4,8 @@ import clsx from 'clsx';
 
 import { Button, makeStyles } from '@material-ui/core';
 
+import { ISimpleGift } from '../../types';
 import { ProfileCard } from 'components';
-import { useAllocation } from 'hooks';
 import { useSelectedCircle } from 'recoilState/app';
 import { Text } from 'ui';
 
@@ -165,17 +165,20 @@ enum FilterType {
   NewMember = 2,
 }
 
-const AllocationGive = () => {
+type AllocationGiveProps = {
+  givePerUser: Map<number, ISimpleGift>;
+  localGifts: ISimpleGift[];
+};
+
+const AllocationGive = ({ givePerUser, localGifts }: AllocationGiveProps) => {
   const classes = useStyles();
 
   const {
-    circleId,
     myUser,
     circleEpochsStatus: { epochIsActive, longTimingMessage },
     circle: selectedCircle,
   } = useSelectedCircle();
 
-  const { givePerUser, localGifts } = useAllocation(circleId);
   const [orderType, setOrderType] = useState<OrderType>(OrderType.Alphabetical);
   const [filterType, setFilterType] = useState<number>(0);
 
@@ -257,7 +260,13 @@ const AllocationGive = () => {
           circleId={myUser.circle_id}
         />
         {localGifts
-          .map(g => g.user)
+          .map(g => {
+            // eslint-disable-next-line no-console
+            console.log(g);
+            // eslint-disable-next-line no-console
+            console.log(g.user);
+            return g.user;
+          })
           .filter(a => {
             if (filterType & FilterType.OptIn) {
               return !a.non_receiver;
@@ -270,6 +279,10 @@ const AllocationGive = () => {
           .sort((a, b) => {
             switch (orderType) {
               case OrderType.Alphabetical:
+                if (a.name === undefined) {
+                  console.error('name is undefined!');
+                  console.error(a);
+                }
                 return a.name.localeCompare(b.name);
               case OrderType.Give_Allocated: {
                 const av = givePerUser.get(a.id)?.tokens ?? 0;
@@ -281,7 +294,8 @@ const AllocationGive = () => {
                 }
               }
               case OrderType.Opt_In_First: {
-                return a.non_receiver - b.non_receiver;
+                // FIXME: i dunno about this
+                return a.non_receiver ? 1 : -1;
               }
             }
           })

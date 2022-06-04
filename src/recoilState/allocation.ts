@@ -1,3 +1,5 @@
+import assert from 'assert';
+
 import iti from 'itiriri';
 import { atomFamily, selectorFamily, useRecoilValue, selector } from 'recoil';
 
@@ -119,6 +121,8 @@ const rLocalGiftRaw = selectorFamily<ISimpleGift | undefined, number>({
       let updatedGifts;
       if (idx === -1) {
         const user = get(rUsersMap).get(userId);
+        // FIXME: is this ok
+        assert(user);
         const gift: ISimpleGift = { user, tokens, note };
         updatedGifts = [...localGifts, gift];
       } else {

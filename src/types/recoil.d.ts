@@ -1,6 +1,7 @@
 import { RecoilValue } from 'recoil';
 import { IEpoch, IUser, ITokenGift } from './models';
 import { ICircle } from './api.circle';
+import { IApiProfile } from './api.user.profile';
 
 export type IRecoilGet = <T>(recoilState: RecoilValue<T>) => T;
 
@@ -22,8 +23,20 @@ export interface IRecoilSetParams {
   reset: (recoilVal: RecoilState<any>) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
+export interface ISimpleGiftUser {
+  id: number;
+  non_receiver: boolean;
+  fixed_non_receiver: boolean;
+  bio?: string;
+  created_at: string;
+  name: string;
+  profile?: Omit<IApiProfile, 'users'>;
+  role: number;
+  address: string;
+}
+
 export interface ISimpleGift {
-  user: IUser;
+  user: ISimpleGiftUser;
   tokens: number;
   note: string;
 }

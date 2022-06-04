@@ -1,17 +1,13 @@
-import assert from 'assert';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 import clsx from 'clsx';
-import { updateTeammates } from 'lib/gql/mutations';
-import isEqual from 'lodash/isEqual';
 import { transparentize } from 'polished';
-import { useQuery, useQueryClient } from 'react-query';
 
 import { Button, makeStyles } from '@material-ui/core';
 
+import { ISimpleGift } from '../../types';
+import { Awaited } from '../../types/shim';
 import { ReactComponent as CheckmarkSVG } from 'assets/svgs/button/checkmark.svg';
-import { useAllocation } from 'hooks';
-import useConnectedAddress from 'hooks/useConnectedAddress';
 import { useSelectedCircle } from 'recoilState/app';
 import { Avatar, Box, Button as UIButton, Flex, Text } from 'ui';
 
@@ -211,92 +207,37 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
+type PotentialTeammates = Awaited<ReturnType<typeof getTeammates>>['allUsers'];
+type Teammates = Awaited<ReturnType<typeof getTeammates>>['startingTeammates'];
+
 type AllocationTeamProps = {
   onSave: () => void;
   onContinue: () => void;
+  setAllLocalTeammates: () => void;
+  clearLocalTeammates: () => void;
+  toggleLocalTeammate: (userId: number) => void;
+  allUsers: PotentialTeammates;
+  localTeammates: Teammates;
+  changed: boolean;
+  givePerUser: Map<number, ISimpleGift>;
 };
-const AllocationTeam = ({ onContinue, onSave }: AllocationTeamProps) => {
+const AllocationTeam = ({
+  onContinue,
+  allUsers,
+  onSave,
+  changed,
+  setAllLocalTeammates,
+  clearLocalTeammates,
+  localTeammates,
+  toggleLocalTeammate,
+  givePerUser,
+}: AllocationTeamProps) => {
   const classes = useStyles();
   const {
-    circleId,
     circle: selectedCircle,
     circleEpochsStatus: { epochIsActive, timingMessage },
   } = useSelectedCircle();
 
-  const address = useConnectedAddress();
-
-  const [changed, setChanged] = useState<boolean>(false);
-
-  const queryClient = useQueryClient();
-
-  const { data, isLoading, isIdle, isStale } = useQuery(
-    ['teammates', selectedCircle.id],
-    () => getTeammates(selectedCircle.id, address as string),
-    {
-      enabled: !!(selectedCircle.id && address),
-      refetchOnReconnect: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
-    }
-  );
-
-  const { allUsers, startingTeammates } = data || { allUsers: [] };
-
-  const [localTeammates, setLocalTeammates] = useState<
-    NonNullable<typeof startingTeammates>
-  >([]);
-
-  useEffect(() => {
-    if (!isLoading && !isIdle && !isStale && data?.startingTeammates) {
-      setLocalTeammates(data?.startingTeammates);
-    }
-  }, [data, isLoading, isIdle, isStale]);
-
-  const saveTeammates = async () => {
-    await updateTeammates(
-      selectedCircle.id,
-      localTeammates.map(u => u.id)
-    );
-    onSave();
-    queryClient.invalidateQueries('teammates');
-  };
-
-  useEffect(() => {
-    if (isLoading || isIdle) return;
-    setChanged(
-      !isEqual(
-        localTeammates.map(u => u.id),
-        startingTeammates?.map(u => u.id)
-      )
-    );
-  }, [startingTeammates, localTeammates, isLoading, isIdle]);
-
-  const toggleLocalTeammate = (userId: number) => {
-    const addedUser = allUsers?.find(u => u.id === userId);
-    assert(addedUser);
-    const newTeammates = localTeammates.find(u => u.id === userId)
-      ? localTeammates.filter(u => u.id !== userId)
-      : [...localTeammates, addedUser];
-    setLocalTeammates(newTeammates);
-    updateLocalGifts(newTeammates);
-  };
-
-  const setAllLocalTeammates = () => {
-    assert(allUsers);
-    setLocalTeammates(allUsers);
-    updateLocalGifts(allUsers);
-  };
-
-  const clearLocalTeammates = () => {
-    if (!selectedCircle.team_selection) {
-      console.error('clearLocalTeammates with circle without team selection');
-      return;
-    }
-    setLocalTeammates([]);
-    updateLocalGifts([]);
-  };
-
-  const { givePerUser, updateLocalGifts } = useAllocation(circleId);
   const [keyword, setKeyword] = useState<string>('');
 
   const onChangeKeyword = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -315,7 +256,7 @@ const AllocationTeam = ({ onContinue, onSave }: AllocationTeamProps) => {
         }}
       >
         {changed ? (
-          <UIButton size="large" color="alert" onClick={saveTeammates}>
+          <UIButton size="large" color="alert" onClick={onSave}>
             Save Teammate List
           </UIButton>
         ) : (

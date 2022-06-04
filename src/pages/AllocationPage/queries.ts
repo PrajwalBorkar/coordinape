@@ -18,8 +18,13 @@ export const getTeammates = async (
           name: true,
           address: true,
           non_receiver: true,
+          fixed_non_receiver: true,
+          created_at: true,
+          role: true,
           profile: {
             avatar: true,
+            address: true,
+            id: true,
           },
         },
       ],
@@ -33,13 +38,19 @@ export const getTeammates = async (
           },
         },
         {
+          team_mate_id: true,
           teammate: {
-            id: true,
+            // id: true,
             name: true,
             address: true,
             non_receiver: true,
+            fixed_non_receiver: true,
+            created_at: true,
+            role: true,
             profile: {
               avatar: true,
+              address: true,
+              id: true,
             },
           },
         },
@@ -52,11 +63,15 @@ export const getTeammates = async (
 
   // The intent of this and the filter
   // is to force teammate typing to be non-nullable
-  type Teammate = NonNullable<typeof data.teammates[number]['teammate']>;
+  type Teammate = NonNullable<typeof data.teammates[number]['teammate']> & {
+    id: number;
+  };
 
   return {
     startingTeammates: data?.teammates
-      ?.map(x => x.teammate)
+      ?.map(x => {
+        return x.teammate ? { ...x.teammate, id: x.team_mate_id } : undefined;
+      })
       .filter((x: Teammate | undefined): x is Teammate => !!x),
     allUsers: data?.users,
   };
