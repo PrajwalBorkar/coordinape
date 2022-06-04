@@ -16,7 +16,7 @@ export interface ISimpleGiftUser {
 export interface ISimpleGift {
   user: ISimpleGiftUser;
   tokens: number;
-  note: string;
+  note?: string;
 }
 
 export interface IAllocationStep {

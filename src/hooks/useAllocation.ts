@@ -9,7 +9,7 @@ import isEqual from 'lodash/isEqual';
 import { useRecoilValue } from 'recoil';
 
 import { useApiBase } from 'hooks';
-import { useUserGifts, rAllocationStepStatus } from 'recoilState/allocation';
+import { useUserGifts } from 'recoilState/allocation';
 import { rUsersMap, useCircle } from 'recoilState/app';
 
 import { useRecoilLoadCatch } from './useRecoilLoadCatch';
@@ -29,7 +29,6 @@ export const useAllocation = (circleId: number) => {
   const { fetchCircle } = useApiBase();
   const { myUser } = useCircle(circleId);
 
-  const [completedSteps] = useRecoilValue(rAllocationStepStatus(circleId));
   const [localGifts, setLocalGifts] = useState<ISimpleGift[]>([]);
 
   const tokenStarting = myUser.non_giver ? 0 : myUser.starting_tokens;
@@ -119,7 +118,6 @@ export const useAllocation = (circleId: number) => {
     localGiftsChanged,
     tokenRemaining,
     givePerUser,
-    completedSteps,
     rebalanceGifts,
     saveGifts,
     updateLocalGifts,
@@ -153,23 +151,10 @@ const calculateGifts =
     return keepers;
   };
 
-export const pendingGiftsToSimpleGifts = (
-  pending: ITokenGift[],
-  usersMap: Map<number, IUser>
-) =>
-  pending.map(
-    g =>
-      ({
-        user: usersMap.get(g.recipient_id),
-        tokens: g.tokens,
-        note: g.note,
-      } as ISimpleGift)
-  );
-
 type tokenNote = [number, string];
 
 const simpleGiftsToMap = (source: ISimpleGift[]): Map<number, tokenNote> =>
-  new Map(source.map(g => [g.user.id, [g.tokens, g.note]]));
+  new Map(source.map(g => [g.user.id, [g.tokens, g.note ?? '']]));
 
 const pendingGiftMap = (pending: ITokenGift[]): Map<number, tokenNote> =>
   new Map(pending.map(g => [g.recipient_id, [g.tokens, g.note ?? '']]));

@@ -19,14 +19,12 @@ import {
 import useConnectedAddress from '../../hooks/useConnectedAddress';
 import { useSafeMutation } from '../../hooks/useSafeMutation';
 import { updateTeammates } from '../../lib/gql/mutations';
-import { useUserGifts } from '../../recoilState';
 import { Button } from '../../ui';
 import { ApeInfoTooltip, LoadingModal } from 'components';
 import {
   useApiWithSelectedCircle,
   useAllocation,
   useDeepChangeEffect,
-  pendingGiftsToSimpleGifts,
 } from 'hooks';
 import { BalanceIcon } from 'icons';
 import { rUsersMap, useSelectedCircle } from 'recoilState/app';
@@ -41,9 +39,9 @@ import {
 import AllocationEpoch from './AllocationEpoch';
 import AllocationGive from './AllocationGive';
 import AllocationTeam from './AllocationTeam';
-import { getTeammates } from './queries';
+import { getPendingGiftsFrom, getTeammates } from './queries';
 
-import { IAllocationStep, ISimpleGift } from 'types';
+import { IAllocationStep, ISimpleGift, ISimpleGiftUser } from 'types';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -134,7 +132,6 @@ export const AllocationPage = () => {
   const {
     localGiftsChanged,
     tokenRemaining,
-    completedSteps,
     rebalanceGifts,
     saveGifts,
     updateLocalGifts,
@@ -174,20 +171,64 @@ export const AllocationPage = () => {
     updateLocalGifts(tm);
   }, [selectedMyUser.teammates]);
 
-  const { pendingGiftsFrom } = useUserGifts(selectedMyUser.id);
+  // FIXME: handle the loading state here
+  const {
+    data: pendingGiftsFrom,
+    isLoading: isPendingGiftsLoading,
+    isIdle: isPendingGiftsIdle,
+  } = useQuery(
+    ['pending-gifts', selectedCircle.id],
+    () => getPendingGiftsFrom(selectedCircle.id, address as string),
+    {
+      enabled: !!(selectedCircle.id && address),
+      refetchOnReconnect: false,
+      refetchOnWindowFocus: false,
+      staleTime: Infinity,
+    }
+  );
   const usersMap = useRecoilValue(rUsersMap);
-
-  useDeepChangeEffect(() => {
-    const newGifts = pendingGiftsToSimpleGifts(pendingGiftsFrom, usersMap);
-    console.log('ULG.pendingGiftsFrom');
-    updateLocalGifts(localTeammates, newGifts);
-  }, [pendingGiftsFrom]);
-
-  const { allUsers, startingTeammates } = data || { allUsers: [] };
 
   const [localTeammates, setLocalTeammates] = useState<
     NonNullable<typeof startingTeammates>
   >([]);
+
+  useDeepChangeEffect(() => {
+    if (isPendingGiftsLoading || isPendingGiftsIdle || isLoading) {
+      return;
+    }
+    if (pendingGiftsFrom) {
+      const newGifts: ISimpleGift[] = [];
+      for (const g of pendingGiftsFrom) {
+        const u: ISimpleGiftUser | undefined = usersMap.get(g.recipient_id);
+        if (!u) {
+          console.warn(
+            'gift has no user dude???',
+            usersMap.get(g.recipient_id)
+          );
+          continue;
+        }
+        newGifts.push({
+          user: u,
+          tokens: g.tokens,
+          note: g.note,
+        });
+      }
+      console.warn(
+        'ULG.pendingGiftsFrom',
+        localTeammates.length,
+        newGifts.length
+      );
+      updateLocalGifts(localTeammates, newGifts);
+    }
+  }, [
+    isLoading,
+    localTeammates,
+    pendingGiftsFrom,
+    isPendingGiftsLoading,
+    isPendingGiftsIdle,
+  ]);
+
+  const { allUsers, startingTeammates } = data || { allUsers: [] };
 
   useEffect(() => {
     if (!isLoading && !isIdle && !isStale && data?.startingTeammates) {
@@ -262,6 +303,10 @@ export const AllocationPage = () => {
     selectedMyUser?.bio !== epochBio ||
     selectedMyUser.non_receiver !== nonReceiver;
 
+  const [completedSteps, setCompletedSteps] = useState<Set<IAllocationStep>>(
+    new Set()
+  );
+
   useEffect(() => {
     const exactStep = allSteps.find(({ path }) =>
       matchPath(path, location.pathname)
@@ -279,7 +324,8 @@ export const AllocationPage = () => {
     } else {
       setActiveStep(exactStep.key);
     }
-  }, [location]);
+    // FIXME: with recoil this didnt run until completedSteps was properly loaded, now it will flash and move url i think
+  }, [location, completedSteps]);
 
   const handleSaveEpoch = async () => {
     try {
@@ -339,6 +385,32 @@ export const AllocationPage = () => {
       return updatedGifts;
     });
   };
+
+  useEffect(() => {
+    if (!pendingGiftsFrom) {
+      // not done loading yet
+      return;
+    }
+    if (selectedMyUser === undefined) {
+      setCompletedSteps(new Set());
+    }
+    const cSteps = new Set<IAllocationStep>();
+    if (!selectedMyUser.epoch_first_visit) {
+      cSteps.add(STEP_MY_EPOCH);
+    }
+    if (
+      !selectedMyUser.epoch_first_visit &&
+      selectedMyUser.teammates &&
+      selectedMyUser.teammates.length > 0
+    ) {
+      cSteps.add(STEP_MY_TEAM);
+    }
+    if (pendingGiftsFrom.length > 0) {
+      cSteps.add(STEP_ALLOCATION);
+    }
+    console.log('CURSTEPS', cSteps);
+    setCompletedSteps(cSteps);
+  }, [selectedMyUser, pendingGiftsFrom]);
 
   if (isLoading || isIdle || isRefetching)
     return <LoadingModal visible text={'Loading Teammates'} />;

@@ -1,5 +1,49 @@
 import { client } from 'lib/gql/client';
 
+export const getPendingGiftsFrom = async (
+  selectedCircleId: number,
+  address: string
+) => {
+  const data = await client.query(
+    {
+      pending_token_gifts: [
+        {
+          where: {
+            sender_address: {
+              _ilike: address,
+            },
+            circle_id: {
+              _eq: selectedCircleId,
+            },
+          },
+        },
+        {
+          tokens: true,
+          recipient_id: true,
+          gift_private: {
+            note: true,
+          },
+        },
+      ],
+    },
+    {
+      operationName: 'pendingGiftsFrom',
+    }
+  );
+
+  type GiftWithNote = Omit<
+    typeof data.pending_token_gifts[number],
+    'gift_private'
+  > & { note?: string };
+
+  return data.pending_token_gifts.map(g => {
+    const gwn: GiftWithNote = {
+      ...g,
+      note: g.gift_private?.note,
+    };
+    return gwn;
+  });
+};
 export const getTeammates = async (
   selectedCircleId: number,
   address: string
