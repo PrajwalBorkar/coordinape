@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 import { client } from 'lib/gql/client';
 import { useQuery } from 'react-query';
 
@@ -7,6 +9,7 @@ export function useCurrentCircleIntegrations() {
   const { circleId } = useSelectedCircle();
 
   return useQuery(['circle-integrations', circleId], async () => {
+    console.log('Start.GetCircleIntegrations');
     const res = await client.query(
       {
         circles_by_pk: [
@@ -25,6 +28,7 @@ export function useCurrentCircleIntegrations() {
       }
     );
 
+    console.log('DONE.GetCircleIntegrations');
     return res.circles_by_pk?.integrations;
   });
 }

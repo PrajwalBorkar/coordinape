@@ -1,21 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-console */
 
+import { useState } from 'react';
+
 import iti from 'itiriri';
 import * as mutations from 'lib/gql/mutations';
 import isEqual from 'lodash/isEqual';
-import { useRecoilValue, useRecoilState, useSetRecoilState } from 'recoil';
+import { useRecoilValue } from 'recoil';
 
 import { useApiBase } from 'hooks';
-import {
-  rLocalGifts,
-  useUserGifts,
-  rAllocationStepStatus,
-  rBaseTeammates,
-} from 'recoilState/allocation';
+import { useUserGifts, rAllocationStepStatus } from 'recoilState/allocation';
 import { rUsersMap, useCircle } from 'recoilState/app';
 
-import { useDeepChangeEffect } from './useDeepChangeEffect';
 import { useRecoilLoadCatch } from './useRecoilLoadCatch';
 
 import {
@@ -34,7 +30,7 @@ export const useAllocation = (circleId: number) => {
   const { myUser } = useCircle(circleId);
 
   const [completedSteps] = useRecoilValue(rAllocationStepStatus(circleId));
-  const [localGifts, setLocalGifts] = useRecoilState(rLocalGifts(circleId));
+  const [localGifts, setLocalGifts] = useState<ISimpleGift[]>([]);
 
   const tokenStarting = myUser.non_giver ? 0 : myUser.starting_tokens;
   const tokenAllocated = Array.from(localGifts).reduce(
@@ -102,7 +98,7 @@ export const useAllocation = (circleId: number) => {
 
       await mutations.updateAllocations(myUser.circle_id, params);
 
-      // FIXME calling fetchCircle here is wasteful
+      // FIXME: calling fetchCircle here is wasteful
       await fetchCircle({ circleId: myUser.circle_id });
     },
     [myUser, pendingGiftsFrom, localGifts],
@@ -113,9 +109,9 @@ export const useAllocation = (circleId: number) => {
     newTeammates: ISimpleGiftUser[],
     newGifts?: ISimpleGift[]
   ) => {
-    console.error('X.UPDATELOCALGIFTS');
+    console.log('X.UPDATELOCALGIFTS');
     console.log(newTeammates);
-    setLocalGifts(getLocalGiftUpdater(newTeammates, newGifts));
+    setLocalGifts(calculateGifts(newTeammates, newGifts));
   };
 
   return {
@@ -127,6 +123,7 @@ export const useAllocation = (circleId: number) => {
     rebalanceGifts,
     saveGifts,
     updateLocalGifts,
+    setLocalGifts,
   };
 };
 
@@ -136,35 +133,23 @@ export const useAllocation = (circleId: number) => {
  * @param newTeammates - Include these.
  * @param newGifts - Overwrite the existing gifts.
  */
-const getLocalGiftUpdater =
+const calculateGifts =
   (newTeammates: ISimpleGiftUser[], newGifts?: ISimpleGift[]) =>
   (baseGifts: ISimpleGift[]) => {
     const startingGifts = newGifts ?? baseGifts;
-    console.log('startingGifts');
-    console.log(startingGifts);
-    console.log('newTeammates');
-    console.log(newTeammates);
     const startingSet = new Set(startingGifts.map(g => g.user.id));
     const newSet = new Set(newTeammates.map(u => u.id));
     const keepers = [] as ISimpleGift[];
     startingGifts.forEach(g => {
       if (newSet.has(g.user.id) || g.note !== '' || g.tokens > 0) {
-        console.log('keepahPush1');
-        console.log(g);
         keepers.push(g);
       }
     });
     newTeammates.forEach(u => {
       if (!startingSet.has(u.id)) {
-        console.log('keepahPush2');
-        console.log(u);
         keepers.push({ user: u, tokens: 0, note: '' } as ISimpleGift);
       }
     });
-    // eslint-disable-next-line no-console
-    console.log('KEEPAHS');
-    // eslint-disable-next-line no-console
-    console.log(keepers);
     return keepers;
   };
 

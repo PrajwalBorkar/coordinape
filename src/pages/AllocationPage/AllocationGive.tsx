@@ -168,9 +168,14 @@ enum FilterType {
 type AllocationGiveProps = {
   givePerUser: Map<number, ISimpleGift>;
   localGifts: ISimpleGift[];
+  updateLocalGift: (gift: ISimpleGift) => void;
 };
 
-const AllocationGive = ({ givePerUser, localGifts }: AllocationGiveProps) => {
+const AllocationGive = ({
+  givePerUser,
+  localGifts,
+  updateLocalGift,
+}: AllocationGiveProps) => {
   const classes = useStyles();
 
   const {
@@ -257,57 +262,52 @@ const AllocationGive = ({ givePerUser, localGifts }: AllocationGiveProps) => {
           note=""
           isMe
           tokenName={myUser.circle.tokenName}
-          circleId={myUser.circle_id}
+          gift={undefined}
+          setGift={() => {}}
         />
         {localGifts
-          .map(g => {
-            // eslint-disable-next-line no-console
-            console.log(g);
-            // eslint-disable-next-line no-console
-            console.log(g.user);
-            return g.user;
-          })
           .filter(a => {
             if (filterType & FilterType.OptIn) {
-              return !a.non_receiver;
+              return !a.user.non_receiver;
             }
             if (filterType & FilterType.NewMember) {
-              return +new Date() - +new Date(a.created_at) < 24 * 3600 * 1000;
+              return (
+                +new Date() - +new Date(a.user.created_at) < 24 * 3600 * 1000
+              );
             }
             return true;
           })
           .sort((a, b) => {
             switch (orderType) {
               case OrderType.Alphabetical:
-                if (a.name === undefined) {
-                  console.error('name is undefined!');
-                  console.error(a);
-                }
-                return a.name.localeCompare(b.name);
+                return a.user.name.localeCompare(b.user.name);
               case OrderType.Give_Allocated: {
-                const av = givePerUser.get(a.id)?.tokens ?? 0;
-                const bv = givePerUser.get(b.id)?.tokens ?? 0;
+                const av = givePerUser.get(a.user.id)?.tokens ?? 0;
+                const bv = givePerUser.get(b.user.id)?.tokens ?? 0;
                 if (av !== bv) {
                   return av - bv;
                 } else {
-                  return a.name.localeCompare(b.name);
+                  return a.user.name.localeCompare(b.user.name);
                 }
               }
               case OrderType.Opt_In_First: {
                 // FIXME: i dunno about this
-                return a.non_receiver ? 1 : -1;
+                return a.user.non_receiver ? 1 : -1;
               }
             }
           })
-          .map(user => (
+          .map(gift => (
             <ProfileCard
               disabled={!epochIsActive}
-              key={user.id}
-              note={givePerUser.get(user.id)?.note || ''}
-              tokens={givePerUser.get(user.id)?.tokens || 0}
+              key={gift.user.id}
+              note={givePerUser.get(gift.user.id)?.note || ''}
+              tokens={givePerUser.get(gift.user.id)?.tokens || 0}
               tokenName={myUser.circle.tokenName}
-              circleId={myUser.circle.id}
-              user={user}
+              user={gift.user}
+              gift={gift}
+              setGift={(gift: ISimpleGift) => {
+                updateLocalGift(gift);
+              }}
             />
           ))}
       </div>

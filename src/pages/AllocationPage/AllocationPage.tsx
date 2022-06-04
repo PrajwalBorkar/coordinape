@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 import assert from 'assert';
 import React, { useEffect, useState } from 'react';
 
@@ -15,16 +17,16 @@ import {
 } from '@material-ui/core';
 
 import useConnectedAddress from '../../hooks/useConnectedAddress';
+import { useSafeMutation } from '../../hooks/useSafeMutation';
 import { updateTeammates } from '../../lib/gql/mutations';
 import { useUserGifts } from '../../recoilState';
 import { Button } from '../../ui';
-import { ApeInfoTooltip } from 'components';
+import { ApeInfoTooltip, LoadingModal } from 'components';
 import {
   useApiWithSelectedCircle,
   useAllocation,
   useDeepChangeEffect,
   pendingGiftsToSimpleGifts,
-  // useAllocationController,
 } from 'hooks';
 import { BalanceIcon } from 'icons';
 import { rUsersMap, useSelectedCircle } from 'recoilState/app';
@@ -41,7 +43,7 @@ import AllocationGive from './AllocationGive';
 import AllocationTeam from './AllocationTeam';
 import { getTeammates } from './queries';
 
-import { IAllocationStep } from 'types';
+import { IAllocationStep, ISimpleGift } from 'types';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -129,7 +131,6 @@ export const AllocationPage = () => {
     circle: selectedCircle,
     circleEpochsStatus: { epochIsActive },
   } = useSelectedCircle();
-  // useAllocationController(circleId);
   const {
     localGiftsChanged,
     tokenRemaining,
@@ -139,6 +140,7 @@ export const AllocationPage = () => {
     updateLocalGifts,
     givePerUser,
     localGifts,
+    setLocalGifts,
   } = useAllocation(circleId);
 
   const address = useConnectedAddress();
@@ -153,7 +155,7 @@ export const AllocationPage = () => {
 
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isIdle, isStale } = useQuery(
+  const { data, isLoading, isIdle, isStale, isRefetching } = useQuery(
     ['teammates', selectedCircle.id],
     () => getTeammates(selectedCircle.id, address as string),
     {
@@ -168,6 +170,7 @@ export const AllocationPage = () => {
     // not confident about this
     const tm = startingTeammates ?? [];
     setLocalTeammates(tm);
+    console.log('ULG.selectedMyUser.teammates');
     updateLocalGifts(tm);
   }, [selectedMyUser.teammates]);
 
@@ -176,6 +179,7 @@ export const AllocationPage = () => {
 
   useDeepChangeEffect(() => {
     const newGifts = pendingGiftsToSimpleGifts(pendingGiftsFrom, usersMap);
+    console.log('ULG.pendingGiftsFrom');
     updateLocalGifts(localTeammates, newGifts);
   }, [pendingGiftsFrom]);
 
@@ -191,14 +195,22 @@ export const AllocationPage = () => {
     }
   }, [data, isLoading, isIdle, isStale]);
 
-  const saveTeammates = async () => {
-    await updateTeammates(
-      selectedCircle.id,
-      localTeammates.map(u => u.id)
-    );
-    await handleTeammatesSaved();
-    queryClient.invalidateQueries('teammates');
-  };
+  const saveTeammates = useSafeMutation(
+    async () => {
+      await updateTeammates(
+        selectedCircle.id,
+        localTeammates.map(u => u.id)
+      );
+      if (epochIsActive) {
+        setActiveStep(STEP_ALLOCATION.key);
+        navigate(STEP_ALLOCATION.path);
+      }
+      await queryClient.invalidateQueries('teammates');
+    },
+    {
+      success: 'Saved Teammates',
+    }
+  );
 
   useEffect(() => {
     if (isLoading || isIdle) return;
@@ -217,12 +229,14 @@ export const AllocationPage = () => {
       ? localTeammates.filter(u => u.id !== userId)
       : [...localTeammates, addedUser];
     setLocalTeammates(newTeammates);
+    console.log('ULG.TOGGLE');
     updateLocalGifts(newTeammates);
   };
 
   const setAllLocalTeammates = () => {
     assert(allUsers);
     setLocalTeammates(allUsers);
+    console.log('ULG.allUsers');
     updateLocalGifts(allUsers);
   };
 
@@ -232,10 +246,9 @@ export const AllocationPage = () => {
       return;
     }
     setLocalTeammates([]);
+    console.log('ULG.CLEAR');
     updateLocalGifts([]);
   };
-
-  // const setLocalGifts = useSetRecoilState(rLocalGifts(circleId));
 
   useEffect(() => {
     if (selectedMyUser) {
@@ -288,16 +301,6 @@ export const AllocationPage = () => {
     }
   };
 
-  const handleTeammatesSaved = async () => {
-    try {
-      if (epochIsActive) {
-        setActiveStep(STEP_ALLOCATION.key);
-        navigate(STEP_ALLOCATION.path);
-      }
-    } catch (e) {
-      console.warn('handleSaveTeamList', e);
-    }
-  };
   const handleSaveAllocations = async () => {
     try {
       await saveGifts();
@@ -310,6 +313,35 @@ export const AllocationPage = () => {
     navigate(step.path);
     setActiveStep(step.key);
   };
+
+  const updateLocalGift = (updatedGift: ISimpleGift): void => {
+    setLocalGifts(prevState => {
+      // This is to ensure it can't go negative in the UI
+      updatedGift.tokens = Math.max(0, updatedGift.tokens);
+
+      const idx = prevState.findIndex(g => g.user.id === updatedGift.user.id);
+
+      let updatedGifts;
+      if (idx === -1) {
+        updatedGifts = [...prevState, updatedGift];
+      } else {
+        updatedGifts = prevState.slice();
+        updatedGifts[idx] = updatedGift;
+      }
+
+      // prevent giving more than you have
+      const total = updatedGifts.reduce((t, g) => t + g.tokens, 0);
+      if (
+        total > (selectedMyUser.non_giver ? 0 : selectedMyUser.starting_tokens)
+      )
+        return prevState;
+
+      return updatedGifts;
+    });
+  };
+
+  if (isLoading || isIdle || isRefetching)
+    return <LoadingModal visible text={'Loading Teammates'} />;
 
   return (
     <div className={classes.root}>
@@ -394,7 +426,11 @@ export const AllocationPage = () => {
 
         {epochIsActive && activeStep === 2 && (
           <>
-            <AllocationGive localGifts={localGifts} givePerUser={givePerUser} />
+            <AllocationGive
+              localGifts={localGifts}
+              givePerUser={givePerUser}
+              updateLocalGift={updateLocalGift}
+            />
             <div className={classes.balanceContainer}>
               <p className={classes.balanceDescription}>
                 {tokenRemaining} {selectedCircle.tokenName}

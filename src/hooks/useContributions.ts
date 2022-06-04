@@ -50,9 +50,13 @@ export function useContributionUsers(): ContributionUser[] {
 export function useContributions(
   address: string
 ): ContributionUser | undefined {
-  const users = useContributionUsers();
-  return useMemo(
-    () => users.find(u => u.address.toLowerCase() === address.toLowerCase()),
-    [address, users]
-  );
+  if (address || !address) {
+    return undefined;
+  }
+
+  // const users = useContributionUsers();
+  // return useMemo(
+  //   () => users.find(u => u.address.toLowerCase() === address.toLowerCase()),
+  //   [address, users]
+  // );
 }
