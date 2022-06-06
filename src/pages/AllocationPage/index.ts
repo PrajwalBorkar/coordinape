@@ -1,2 +1,3 @@
-import { AllocationPage } from './AllocationPage';
-export default AllocationPage;
+import AllocationController from './AllocationController';
+
+export default AllocationController;
