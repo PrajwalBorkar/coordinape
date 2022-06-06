@@ -1,5 +1,7 @@
 import { client } from 'lib/gql/client';
 
+import { Awaited } from '../../types/shim';
+
 export const getPendingGiftsFrom = async (
   selectedCircleId: number,
   address: string
@@ -44,6 +46,11 @@ export const getPendingGiftsFrom = async (
     return gwn;
   });
 };
+
+export type PendingGift = Awaited<
+  ReturnType<typeof getPendingGiftsFrom>
+>[number];
+
 export const getTeammates = async (
   selectedCircleId: number,
   address: string
@@ -120,6 +127,14 @@ export const getTeammates = async (
     allUsers: data?.users,
   };
 };
+
+export type Teammate = Awaited<
+  ReturnType<typeof getTeammates>
+>['startingTeammates'][number];
+
+export type PotentialTeammate = Awaited<
+  ReturnType<typeof getTeammates>
+>['allUsers'][number];
 
 export const getCurrentTeammates = async (
   selectedCircleId: number,

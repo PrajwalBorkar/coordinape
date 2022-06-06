@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 import React, { useState } from 'react';
 
 import clsx from 'clsx';
@@ -161,7 +163,6 @@ enum FilterType {
 type AllocationGiveProps = {
   givePerUser: Map<number, ISimpleGift>;
   localGifts: ISimpleGift[];
-  updateLocalGift: (gift: ISimpleGift) => void;
   pendingGiftsFrom: { recipient_id: number; tokens: number; note?: string }[];
   setLocalGifts: (value: React.SetStateAction<ISimpleGift[]>) => void;
 };
@@ -169,7 +170,6 @@ type AllocationGiveProps = {
 const AllocationGive = ({
   givePerUser,
   localGifts,
-  updateLocalGift,
   pendingGiftsFrom,
   setLocalGifts,
 }: AllocationGiveProps) => {
@@ -232,6 +232,30 @@ const AllocationGive = ({
           .map(g => ({ ...g, tokens: Math.floor(g.tokens * rebalance) }))
       );
     }
+  };
+
+  const updateLocalGift = (updatedGift: ISimpleGift): void => {
+    setLocalGifts(prevState => {
+      // This is to ensure it can't go negative in the UI
+      updatedGift.tokens = Math.max(0, updatedGift.tokens);
+
+      const idx = prevState.findIndex(g => g.user.id === updatedGift.user.id);
+
+      let updatedGifts;
+      if (idx === -1) {
+        updatedGifts = [...prevState, updatedGift];
+      } else {
+        updatedGifts = prevState.slice();
+        updatedGifts[idx] = updatedGift;
+      }
+
+      // prevent giving more than you have
+      const total = updatedGifts.reduce((t, g) => t + g.tokens, 0);
+      if (total > (myUser.non_giver ? 0 : myUser.starting_tokens))
+        return prevState;
+
+      return updatedGifts;
+    });
   };
 
   const saveGifts = useRecoilLoadCatch(

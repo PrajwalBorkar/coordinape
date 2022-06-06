@@ -1,10 +1,16 @@
+import assert from 'assert';
 import React, { useState } from 'react';
 
 import clsx from 'clsx';
 import { transparentize } from 'polished';
+import { useQueryClient } from 'react-query';
+import { useNavigate } from 'react-router-dom';
 
 import { Button, makeStyles } from '@material-ui/core';
 
+import { useSafeMutation } from '../../hooks/useSafeMutation';
+import { updateTeammates } from '../../lib/gql/mutations';
+import { STEP_ALLOCATION } from '../../routes/allocation';
 import { ISimpleGift } from '../../types';
 import { Awaited } from '../../types/shim';
 import { ReactComponent as CheckmarkSVG } from 'assets/svgs/button/checkmark.svg';
@@ -211,34 +217,73 @@ type PotentialTeammates = Awaited<ReturnType<typeof getTeammates>>['allUsers'];
 type Teammates = Awaited<ReturnType<typeof getTeammates>>['startingTeammates'];
 
 type AllocationTeamProps = {
-  onSave: () => void;
   onContinue: () => void;
-  setAllLocalTeammates: () => void;
-  clearLocalTeammates: () => void;
-  toggleLocalTeammate: (userId: number) => void;
   allUsers: PotentialTeammates;
   localTeammates: Teammates;
+  setLocalTeammates: (tt: Teammates) => void;
   changed: boolean;
   givePerUser: Map<number, ISimpleGift>;
+  setActiveStep: (step: number) => void;
 };
 const AllocationTeam = ({
   onContinue,
   allUsers,
-  onSave,
   changed,
-  setAllLocalTeammates,
-  clearLocalTeammates,
   localTeammates,
-  toggleLocalTeammate,
+  setLocalTeammates,
   givePerUser,
+  setActiveStep,
 }: AllocationTeamProps) => {
   const classes = useStyles();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   const {
     circle: selectedCircle,
     circleEpochsStatus: { epochIsActive, timingMessage },
   } = useSelectedCircle();
 
   const [keyword, setKeyword] = useState<string>('');
+
+  const toggleLocalTeammate = (userId: number) => {
+    const addedUser = allUsers?.find(u => u.id === userId);
+    assert(addedUser);
+    const newTeammates = localTeammates.find(u => u.id === userId)
+      ? localTeammates.filter(u => u.id !== userId)
+      : [...localTeammates, addedUser];
+    setLocalTeammates(newTeammates);
+  };
+
+  const setAllLocalTeammates = () => {
+    assert(allUsers);
+    setLocalTeammates(allUsers);
+  };
+
+  const clearLocalTeammates = () => {
+    if (!selectedCircle.team_selection) {
+      console.error('clearLocalTeammates with circle without team selection');
+      return;
+    }
+    setLocalTeammates([]);
+  };
+
+  const saveTeammates = useSafeMutation(
+    async () => {
+      await updateTeammates(
+        selectedCircle.id,
+        localTeammates.map(u => u.id)
+      );
+      if (epochIsActive) {
+        // fIXME: shouldnt this be in the controller and navigate on a useEffect
+        setActiveStep(STEP_ALLOCATION.key);
+        navigate(STEP_ALLOCATION.path);
+      }
+      await queryClient.invalidateQueries('teammates');
+    },
+    {
+      success: 'Saved Teammates',
+    }
+  );
 
   const onChangeKeyword = (event: React.ChangeEvent<HTMLInputElement>) => {
     setKeyword(event.target.value);
@@ -256,7 +301,7 @@ const AllocationTeam = ({
         }}
       >
         {changed ? (
-          <UIButton size="large" color="alert" onClick={onSave}>
+          <UIButton size="large" color="alert" onClick={saveTeammates}>
             Save Teammate List
           </UIButton>
         ) : (
