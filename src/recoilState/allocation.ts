@@ -29,8 +29,6 @@ export const rUserGifts = selectorFamily({
         ])
       );
       return {
-        pendingGiftsFrom: [...giftsFrom].filter(g => g.pending),
-        pendingGiftsFor: [...giftsFor].filter(g => g.pending),
         fromUser: giftsFrom,
         forUser: giftsFor,
         fromUserByEpoch,
