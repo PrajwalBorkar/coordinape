@@ -156,6 +156,7 @@ const AllocationContents = ({
   useEffect(() => {
     if (selectedMyUser === undefined) {
       setCompletedSteps(new Set());
+      return;
     }
     const cSteps = new Set<IAllocationStep>();
     if (!selectedMyUser.epoch_first_visit) {

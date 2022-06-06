@@ -7,7 +7,7 @@ import iti from 'itiriri';
 
 import { Button, IconButton, makeStyles } from '@material-ui/core';
 
-import { useRecoilLoadCatch } from '../../hooks';
+import { useApiBase, useRecoilLoadCatch } from '../../hooks';
 import { BalanceIcon } from '../../icons';
 import * as mutations from '../../lib/gql/mutations';
 import { ISimpleGift, PostTokenGiftsParam } from '../../types';
@@ -174,6 +174,7 @@ const AllocationGive = ({
   setLocalGifts,
 }: AllocationGiveProps) => {
   const classes = useStyles();
+  const { fetchCircle } = useApiBase();
 
   const {
     myUser,
@@ -273,7 +274,8 @@ const AllocationGive = ({
       await mutations.updateAllocations(myUser.circle_id, params);
 
       // FIXME: calling fetchCircle here is wasteful
-      // await fetchCircle({ circleId: selectedMyUser.circle_id });
+      // i think the only point of this is to update myUser.teammates
+      await fetchCircle({ circleId: myUser.circle_id });
     },
     [myUser, pendingGiftsFrom, localGifts],
     { success: 'Saved Gifts' }

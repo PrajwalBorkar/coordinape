@@ -1,3 +1,3 @@
-import AllocationController from './AllocationController';
+import AllocationController from './AllocationPage';
 
 export default AllocationController;
