@@ -18,10 +18,11 @@ import {
   STEPS,
 } from '../../routes/allocation';
 import { IAllocationStep, ISimpleGift, ISimpleGiftUser } from '../../types';
+import { Box } from '../../ui/Box/Box';
 
 import AllocationEpoch from './AllocationEpoch';
 import AllocationGive from './AllocationGive';
-import { AllocationPage } from './AllocationPage';
+import { AllocationStepper } from './AllocationStepper';
 import AllocationTeam from './AllocationTeam';
 import { calculateGifts } from './calculations';
 import {
@@ -32,7 +33,7 @@ import {
   Teammate,
 } from './queries';
 
-const AllocationData = () => {
+const AllocationPage = () => {
   const address = useConnectedAddress();
   const { circle: selectedCircle } = useSelectedCircle();
 
@@ -68,7 +69,7 @@ const AllocationData = () => {
   const { allUsers, startingTeammates } = data;
 
   return (
-    <AllocationController
+    <AllocationContents
       startingTeammates={startingTeammates}
       allUsers={allUsers}
       pendingGiftsFrom={pendingGiftsFrom}
@@ -76,16 +77,16 @@ const AllocationData = () => {
   );
 };
 
-type AllocationControllerProps = {
+type AllocationContentsProps = {
   startingTeammates: Teammate[];
   allUsers: PotentialTeammate[];
   pendingGiftsFrom: PendingGift[];
 };
-const AllocationController = ({
+const AllocationContents = ({
   startingTeammates,
   allUsers,
   pendingGiftsFrom,
-}: AllocationControllerProps) => {
+}: AllocationContentsProps) => {
   const navigate = useNavigate();
 
   const {
@@ -227,46 +228,65 @@ const AllocationController = ({
   /* ----- */
 
   return (
-    <AllocationPage
-      allSteps={allSteps}
-      activeStep={activeStep}
-      completedSteps={completedSteps}
-      getHandleStep={getHandleStep}
+    <Box
+      css={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+      }}
     >
-      {selectedMyUser && activeStep === 0 && (
-        <>
-          <AllocationEpoch
-            // FIXME: why both
-            getHandleStep={getHandleStep}
+      <AllocationStepper
+        allSteps={allSteps}
+        activeStep={activeStep}
+        completedSteps={completedSteps}
+        getHandleStep={getHandleStep}
+      />
+      <Box
+        css={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'start',
+          justifyContent: 'center',
+          overflow: 'auto',
+          width: '100%',
+        }}
+      >
+        {selectedMyUser && activeStep === 0 && (
+          <>
+            <AllocationEpoch
+              // FIXME: why both
+              getHandleStep={getHandleStep}
+              setActiveStep={setActiveStep}
+            />
+          </>
+        )}
+
+        {selectedMyUser && activeStep === 1 && (
+          <AllocationTeam
+            allUsers={allUsers}
+            onContinue={getHandleStep(STEP_ALLOCATION)}
+            changed={teammatesChanged}
+            localTeammates={localTeammates}
+            setLocalTeammates={setLocalTeammates}
+            givePerUser={givePerUser}
             setActiveStep={setActiveStep}
           />
-        </>
-      )}
+        )}
 
-      {selectedMyUser && activeStep === 1 && (
-        <AllocationTeam
-          allUsers={allUsers}
-          onContinue={getHandleStep(STEP_ALLOCATION)}
-          changed={teammatesChanged}
-          localTeammates={localTeammates}
-          setLocalTeammates={setLocalTeammates}
-          givePerUser={givePerUser}
-          setActiveStep={setActiveStep}
-        />
-      )}
-
-      {epochIsActive && activeStep === 2 && (
-        <>
-          <AllocationGive
-            localGifts={localGifts}
-            givePerUser={givePerUser}
-            setLocalGifts={setLocalGifts}
-            pendingGiftsFrom={pendingGiftsFrom}
-          />
-        </>
-      )}
-    </AllocationPage>
+        {epochIsActive && activeStep === 2 && (
+          <>
+            <AllocationGive
+              localGifts={localGifts}
+              givePerUser={givePerUser}
+              setLocalGifts={setLocalGifts}
+              pendingGiftsFrom={pendingGiftsFrom}
+            />
+          </>
+        )}
+      </Box>
+    </Box>
   );
 };
 
-export default AllocationData;
+export default AllocationPage;
