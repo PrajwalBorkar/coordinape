@@ -145,6 +145,7 @@ export const CreateForm = ({ onSuccess }: { onSuccess: () => void }) => {
               alt={symbol}
               height={25}
               width={25}
+              style={{ paddingRight: 0 }}
             />
             <Text css={{ ml: '$xs' }}>{symbol}</Text>
           </AssetButton>
