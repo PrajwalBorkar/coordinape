@@ -15,6 +15,7 @@ import { useWalletStatus } from 'components/MyAvatarMenu/MyAvatarMenu';
 import isFeatureEnabled from 'config/features';
 import { useMediaQuery } from 'hooks';
 import { HamburgerIcon, CloseIcon } from 'icons';
+import ClaimsNavButton from 'pages/ClaimsPage/ClaimsNavButton';
 import { useSetWalletModalOpen } from 'recoilState';
 import {
   rSelectedCircle,
@@ -101,6 +102,7 @@ export const MainHeader = () => {
         )}
         {!address && <ConnectButton />}
         <Suspense fallback={null}>
+          <ClaimsNavButton />
           <MyAvatarMenu />
         </Suspense>
       </Box>

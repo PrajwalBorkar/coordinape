@@ -11,9 +11,7 @@ export declare class ApeRouter__factory extends ContractFactory {
     }): TransactionRequest;
     attach(address: string): ApeRouter;
     connect(signer: Signer): ApeRouter__factory;
-    static readonly abi: ({
             type: string;
-        }[];
         stateMutability: string;
         type: string;
         anonymous?: undefined;
