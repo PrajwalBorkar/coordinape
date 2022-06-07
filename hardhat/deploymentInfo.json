@@ -88,31 +88,18 @@
       "address": "0x978A2941BA6CA861DFEE872c75e9FA5C51030d63"
     },
     "ApeRouter": {
-<<<<<<< HEAD
       "address": "0x3D24345bb7FEE3B0B50d66a58946722BBbB26dFf"
-=======
-      "address": "0x91922e6c71effbFe0BB93Fd927BE47fB9666f604"
->>>>>>> a7c10c010afc82a8f45a4b89c3402d9954c89edc
     },
     "ApeVaultFactoryBeacon": {
       "address": "0x069cD64cC7D93b7e69130808338c0c2e561F3629"
     },
     "ApeVaultWrapperImplementation": {
-<<<<<<< HEAD
       "address": "0x3a332Db5c05AB94d76959b8f2e2690C99D4B13e3"
-    },
-    "COToken": {
-      "address": "0x3BDaeB7bbCf7659EDcBb4faf22D34A133FF60784"
     },
     "DAI": {
       "address": "0x48B2838d5698E2A8d4d70e62DAAFe255223Eecd5"
     },
-    "FeeRegistry": {
-      "address": "0xF65152d066fa6a6D124Af23E9181EfFf7aA4D694"
-    },
     "MockRegistry": {
-=======
->>>>>>> a7c10c010afc82a8f45a4b89c3402d9954c89edc
       "address": "0xB6f8ed8dB8d6AC13f9d34dC0353Bc86c445c36EC"
     },
     "COToken": {
